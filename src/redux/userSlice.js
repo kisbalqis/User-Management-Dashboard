@@ -1,10 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-// API Endpoint
 const API_URL = 'https://jsonplaceholder.typicode.com/users';
 
-// Async Thunks
 export const fetchUsers = createAsyncThunk('users/fetchUsers', async () => {
   const response = await axios.get(API_URL);
   return response.data;
@@ -25,7 +23,6 @@ export const deleteUser = createAsyncThunk('users/deleteUser', async (id) => {
   return id;
 });
 
-// User Slice
 const userSlice = createSlice({
   name: 'users',
   initialState: { users: [], loading: false, error: null },
@@ -47,7 +44,9 @@ const userSlice = createSlice({
       })
       .addCase(updateUser.fulfilled, (state, action) => {
         const index = state.users.findIndex((user) => user.id === action.payload.id);
-        if (index !== -1) state.users[index] = action.payload;
+        if (index !== -1) {
+          state.users[index] = action.payload;
+        }
       })
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.users = state.users.filter((user) => user.id !== action.payload);

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchUsers, deleteUser } from "../redux/userSlice";
-import { Button, Spinner, Table } from "react-bootstrap";
+import {
+  fetchUsers,
+  deleteUser,
+  addUser,
+  updateUser,
+} from "../redux/userSlice";
+import { Button, Spinner, Table, Modal, Form } from "react-bootstrap";
 import NavbarComponents from "../components/Navbar";
-import FormComponents from "../components/Form";
 import SearchBar from "../components/Search";
-import ConfirmationModal from "../components/Modal";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -13,21 +16,15 @@ const Dashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [query, setQuery] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(null);
-
-  const confirmDelete = (userId) => {
-    setSelectedUserId(userId);
-    setShowConfirm(true);
-  };
-
-  const handleConfirmDelete  = () => {
-    if (selectedUserId !== null) {
-      handleDelete(selectedUserId); 
-    }
-    setShowConfirm(false);
-    setSelectedUserId(null);
-  };
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    username: "",
+    phone: "",
+    website: "",
+    company: { name: "" },
+    address: { street: "" },
+  });
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -35,6 +32,64 @@ const Dashboard = () => {
 
   const handleDelete = (id) => {
     dispatch(deleteUser(id));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name.startsWith("company.")) {
+      setNewUser((prev) => ({
+        ...prev,
+        company: { ...prev.company, [name.split(".")[1]]: value },
+      }));
+    } else if (name.startsWith("address.")) {
+      setNewUser((prev) => ({
+        ...prev,
+        address: { ...prev.address, [name.split(".")[1]]: value },
+      }));
+    } else {
+      setNewUser((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const handleSaveUser = () => {
+    if (newUser.name && newUser.email && newUser.username) {
+      if (editUser) {
+
+        dispatch(updateUser(newUser)); 
+      } else {
+       
+        dispatch(addUser(newUser)); 
+      }
+      setShowModal(false); 
+    } else {
+      alert("Please fill all required fields.");
+    }
+  };
+  
+
+  const handleEditUser = (user) => {
+    setEditUser(user);
+    setNewUser(user); 
+    setShowModal(true); 
+  };
+  
+
+  const handleAddUser = () => {
+    setEditUser(null);
+    setNewUser({
+      name: "",
+      email: "",
+      username: "",
+      phone: "",
+      website: "",
+      company: { name: "" },
+      address: { street: "" },
+    });
+    setShowModal(true);
   };
 
   const filteredUsers = users.filter(
@@ -49,17 +104,7 @@ const Dashboard = () => {
       <NavbarComponents />
       <div className="container mt-5">
         <div className="d-flex gap-4 mb-3">
-          <ConfirmationModal
-            show={showConfirm}
-            title="Confirm Deletion"
-            message="Are you sure you want to delete this user?"
-            onClose={() => setShowConfirm(false)}
-            onConfirm={handleConfirmDelete}
-          />
-          <Button
-            onClick={() => setShowModal(true)}
-            variant="dark"
-            className="mb-3">
+          <Button onClick={handleAddUser} variant="dark" className="mb-3">
             Add User
           </Button>
           {loading && <Spinner animation="border" />}
@@ -102,27 +147,19 @@ const Dashboard = () => {
                       {user.website}
                     </a>
                   </td>
-                  <td>
-                    {user.company.name} - {user.company.catchPhrase}
-                  </td>
-                  <td>
-                    {user.address.street}, {user.address.suite},{" "}
-                    {user.address.city}, {user.address.zipcode}
-                  </td>
+                  <td>{user.company.name}</td>
+                  <td>{user.address.street}</td>
                   <td>
                     <Button
                       variant="link"
                       className="text-warning"
-                      onClick={() => {
-                        setEditUser(user);
-                        setShowModal(true);
-                      }}>
+                      onClick={() => handleEditUser(user)}>
                       Edit
                     </Button>
                     <Button
                       variant="link"
                       className="text-danger"
-                      onClick={() => confirmDelete(user.id)}>
+                      onClick={() => handleDelete(user.id)}>
                       Delete
                     </Button>
                   </td>
@@ -132,11 +169,116 @@ const Dashboard = () => {
           </tbody>
         </Table>
 
-        <FormComponents
-          show={showModal}
-          handleClose={() => setShowModal(false)}
-          editUser={editUser}
-        />
+        <Modal show={showModal} onHide={() => setShowModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>{editUser ? "Edit User" : "Add User"}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form>
+              {/* Name */}
+              <Form.Group className="mb-3">
+                <Form.Label>Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="name"
+                  value={newUser.name}
+                  onChange={handleInputChange}
+                  placeholder="Enter name"
+                />
+              </Form.Group>
+
+              {/* Email */}
+              <Form.Group className="mb-3">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={newUser.email}
+                  onChange={handleInputChange}
+                  placeholder="Enter email"
+                />
+              </Form.Group>
+
+              {/* Username */}
+              <Form.Group className="mb-3">
+                <Form.Label>Username</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="username"
+                  value={newUser.username}
+                  onChange={handleInputChange}
+                  placeholder="Enter username"
+                />
+              </Form.Group>
+
+              {/* Phone */}
+              <Form.Group className="mb-3">
+                <Form.Label>Phone</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="phone"
+                  value={newUser.phone}
+                  onChange={handleInputChange}
+                  placeholder="Enter phone number"
+                />
+              </Form.Group>
+
+              {/* Website */}
+              <Form.Group className="mb-3">
+                <Form.Label>Website</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="website"
+                  value={newUser.website}
+                  onChange={handleInputChange}
+                  placeholder="Enter website"
+                />
+              </Form.Group>
+
+              {/* Company Name */}
+              <Form.Group className="mb-3">
+                <Form.Label>Company Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="companyName"
+                  value={newUser.company.name}
+                  onChange={(e) =>
+                    setNewUser({
+                      ...newUser,
+                      company: { ...newUser.company, name: e.target.value },
+                    })
+                  }
+                  placeholder="Enter company name"
+                />
+              </Form.Group>
+
+              {/* Address Street */}
+              <Form.Group className="mb-3">
+                <Form.Label>Address</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="addressStreet"
+                  value={newUser.address.street}
+                  onChange={(e) =>
+                    setNewUser({
+                      ...newUser,
+                      address: { ...newUser.address, street: e.target.value },
+                    })
+                  }
+                  placeholder="Enter address street"
+                />
+              </Form.Group>
+            </Form>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="outline-dark" onClick={() => setShowModal(false)}>
+              Close
+            </Button>
+            <Button variant="dark" onClick={handleSaveUser}>
+              {editUser ? "Save Changes" : "Add User"}
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
     </>
   );
